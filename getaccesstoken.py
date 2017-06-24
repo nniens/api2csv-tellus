@@ -10,31 +10,33 @@ class GetAccessToken(object):
         for using the internal API's
         by logging in as type = 'employee'
 
-        Usage: 
+        Usage:
             from accesstoken import AccessToken
-            
             getToken = AccessToken()
             accessToken = getToken.getAccessToken()
-                        
             requests.get(url, headers= accessToken)
-
     """
     global baseUrl
 
     baseUrl = 'https://api.data.amsterdam.nl/auth'
 
     def grantToken(self):
-        callbackUrl = "https%3A%2F%2Fatlas.amsterdam.nl%2F%23"
+        # set callbackUrl to identify as a visitor
+        callbackUrl = "https%3A%2F%2Fdata.amsterdam.nl%2F%23"
         grantUrl = baseUrl + '/idp/login'
         grantData = {"type": 'employee'}
 
+        # Post to get url with Grant token
         response = requests.post(grantUrl + '?callback=' +
                                  callbackUrl, data=grantData)
-        url = response.url
-        
+        # Get url line with grantToken in string
+        returnedUrl = response.url
+
         # Get grantToken from parameter aselect_credentials in session URL
-        parsed = urlparse(url)
+        parsed = urlparse(returnedUrl)
         fragment = parse_qsl(parsed.fragment)
+
+        # Set Grant Token in env variable
         os.environ["GRANT_TOKEN"] = fragment[0][1]
         print('Received new grant Token')
 
