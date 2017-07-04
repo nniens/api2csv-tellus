@@ -8,7 +8,7 @@ The grant token is obtained with the login page of https://atlas.amsterdam.nl.
 ### Install procedure ###
 
 ```
-git clone https://github.com/Lytrix/api2csv-tellus.git
+git clone https://github.com/amsterdam/api2csv-tellus.git
 virtualenv --python=$(which python3) venv
 source venv/bin/activate
 pip install --upgrade pip

@@ -16,6 +16,7 @@ class GetAccessToken(object):
             accessToken = getToken.getAccessToken()
             requests.get(url, headers= accessToken)
     """
+
     global baseUrl
 
     baseUrl = 'https://api.data.amsterdam.nl/auth'
