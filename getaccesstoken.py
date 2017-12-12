@@ -1,8 +1,9 @@
 # utf-8
 import requests
 import os
+import random
+import string
 from urllib.parse import urlparse, parse_qsl
-
 
 class GetAccessToken(object):
     """
@@ -16,60 +17,54 @@ class GetAccessToken(object):
             accessToken = getToken.getAccessToken()
             requests.get(url, headers= accessToken)
     """
+    def getAccessToken(self):
 
-    global baseUrl
+        def randomword(length):
+            letters = string.ascii_lowercase
+            return ''.join(random.choice(letters) for i in range(length))
 
-    baseUrl = 'https://api.data.amsterdam.nl/auth'
+        state = randomword(10)
+        scopes = ['TLLS/R']
+        authzUrl = 'https://api.data.amsterdam.nl/oauth2/authorize'
+        params = {
+            'idp_id' : 'datapunt',
+            'response_type' : 'token',
+            'client_id' : 'citydata',
+            'scope' : ' '.join(scopes),
+            'state' : state,
+            'redirect_uri' : 'https://data.amsterdam.nl/'
+        }
 
-    def grantToken(self):
-        # set callbackUrl to identify as a visitor
-        callbackUrl = "https%3A%2F%2Fdata.amsterdam.nl%2F%23"
-        grantUrl = baseUrl + '/idp/login'
-        grantData = {"type": 'employee'}
+        response = requests.get(authzUrl, params, allow_redirects=False)
+        if response.status_code == 303:
+            location = response.headers["Location"]
+        else:
+            return {}
 
-        # Post to get url with Grant token
-        response = requests.post(grantUrl + '?callback=' +
-                                 callbackUrl, data=grantData)
-        # Get url line with grantToken in string
-        returnedUrl = response.url
+        data = {
+            'type':'employee'
+        }
+
+        response = requests.post(location, data=data, allow_redirects=False)
+        if response.status_code == 303:
+            location = response.headers["Location"]
+        else:
+            return {}
+
+        response = requests.get(location, allow_redirects=False)
+        if response.status_code == 303:
+            returnedUrl = response.headers["Location"]
+        else:
+            return {}
 
         # Get grantToken from parameter aselect_credentials in session URL
         parsed = urlparse(returnedUrl)
         fragment = parse_qsl(parsed.fragment)
+        access_token = fragment[0][1]
+        os.environ["ACCESS_TOKEN"] = access_token
+        return {"Authorization": 'Bearer ' + access_token}
 
-        # Set Grant Token in env variable
-        os.environ["GRANT_TOKEN"] = fragment[0][1]
-        print('Received new grant Token')
 
-    def refreshToken(self):
-        if "GRANT_TOKEN" not in os.environ:
-            print('GRANT TOKEN env variable does not exist. ' +
-                  'Getting new grant Token')
-            self.grantToken()
-
-        refreshParams = {'aselect_credentials': os.environ["GRANT_TOKEN"],
-                         'a-select-server': 0,
-                         'rid': 0}
-        refreshTokenUrl = baseUrl + '/idp/token'
-        response = requests.get(refreshTokenUrl, params=refreshParams)
-
-        if response.status_code != 200:
-            print("Refresh token not valid, requesting new grant token...")
-            self.grantToken()
-            response = requests.get(refreshTokenUrl)
-
-        os.environ["REFRESH_TOKEN"] = response.text
-        print('Stored refresh token.')
-
-    def accessToken(self):
-        refreshToken = os.environ["REFRESH_TOKEN"]
-        REFRESH_TOKEN = {"Authorization": 'Bearer ' + refreshToken}
-        accessTokenUrl = baseUrl + '/accesstoken'
-        accessToken = requests.get(accessTokenUrl, headers=REFRESH_TOKEN)
-        os.environ["ACCESS_TOKEN"] = accessToken.text
-
-    def getAccessToken(self):
-        self.refreshToken()
-        self.accessToken()
-        print('Stored new access token')
-        return {"Authorization": 'Bearer ' + os.environ["ACCESS_TOKEN"]}
+if __name__ == "__main__":
+    access_token = GetAccessToken().getAccessToken()
+    print(f'Received new Access Token Header: {access_token}')

@@ -32,7 +32,7 @@ def getTellus():
     getToken = GetAccessToken()  # Create instance of class
     accessToken = getToken.getAccessToken()  # Get Access token
 
-    url = "https://api.data.amsterdam.nl/tellus/tellus/"
+    url = "https://api.data.amsterdam.nl/tellus/tellus"
     response = requests.get(url, headers=accessToken)
     jsonTellus = response.json()
     return jsonTellus["_embedded"]
